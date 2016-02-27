@@ -89,10 +89,10 @@ class SimpleDaemon
 end
 
 # Process name of your daemon
-$0 = "simple ruby daemon"
+#$0 = "simplerubydaemon"
 
-# Spawn a deamon
-SimpleDaemon.start fork, (ARGV[0] || '/tmp/deamon.pid'), (ARGV[1] || '/tmp/daemon.stdout.log'), (ARGV[2] || '/tmp/daemon.stderr.log')
+# Spawn a daemon
+SimpleDaemon.start fork, (ARGV[0] || '/tmp/daemon.pid'), (ARGV[1] || '/tmp/daemon.stdout.log'), (ARGV[2] || '/tmp/daemon.stderr.log')
 
 # Set up signals for our daemon, for now they just exit the process.
 Signal.trap("HUP") { $stdout.puts "SIGHUP and exit"; exit }
