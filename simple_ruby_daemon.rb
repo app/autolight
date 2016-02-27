@@ -86,6 +86,10 @@ class SimpleDaemon
     $stderr.reopen err
     $stdout.sync = $stderr.sync = true
   end
+
+
+	def update
+	end
 end
 
 # Process name of your daemon
@@ -99,7 +103,109 @@ Signal.trap("HUP") { $stdout.puts "SIGHUP and exit"; exit }
 Signal.trap("INT") { $stdout.puts "SIGINT and exit"; exit }
 Signal.trap("QUIT") { $stdout.puts "SIGQUIT and exit"; exit }
 
+#############################################################################################
+# ambient light sensor
+ALS_SOURCE = '/sys/devices/platform/applesmc.768/light'
+# backlight
+BL_SOURCE = '/sys/class/backlight/acpi_video0/brightness'
+
+ALS_MAX = 35
+ALS_MIN = 0
+BL_MAX = 255
+BL_MIN = (255 * 0.25).round
+
+SINGLE_UPDATE_THRESH = 5
+UPDATE_INTERVAL = 0.25 # second
+
+def panel_open?
+  #fd = open('/proc/acpi/button/lid/LID0/state', 'r')
+  #is_open = fd.read.split.last == 'open'
+  #fd.close
+  #is_open
+	true
+end
+
+def current_als
+  fd = open(ALS_SOURCE, 'r')
+  value = fd.read.chomp.gsub(/[()]/, '').split(',').first.to_i
+  fd.close
+	$stdout.puts "als: #{value.to_i}"
+  value.to_i
+end
+
+def smooth_als
+  #$als_history ||= Queue.new
+  $als_history ||= [] 
+  $als_history.push current_als
+	$stdout.puts "history.size = #{$als_history.size}"
+	$als_history.shift if $als_history.size > 10
+  sum = 0.0
+	#$als_history.instance_variable_get('@queue').each do |val|
+	#$als_history.instance_variables.each do |val|
+	#$stdout.puts "$als_history.instance_variable_get('@que')=#{$als_history.instance_variable_get('@que')}"
+	#$stdout.puts "$als_history.instance_variable_get(:@que)=#{$als_history.instance_variable_get(:@que)}"
+	#$stdout.puts "$als_history.inspect=#{$als_history.inspect}"
+	#$stdout.puts "$als_history.to_s=#{$als_history.to_s}"
+	$stdout.puts "$als_history=#{$als_history}"
+	#$stdout.puts "$als_history.instance_variables=#{$als_history.instance_variables}"
+
+	$als_history.each do |val|
+		$stdout.puts "val=#{val}"
+    sum += val
+  end
+	$stdout.puts "sum = #{sum}"
+  sum / $als_history.size.to_f
+end
+
+def current_bl
+  fd = open(BL_SOURCE, 'r')
+  bl = fd.read
+  fd.close
+  bl.to_i
+end
+
+def set_bl(bl)
+  fd = open(BL_SOURCE, 'w')
+  fd.write(bl.to_s)
+  fd.close
+rescue ::Exception => e
+    #$stderr.puts "While wtriting to file #{BL_SOURCE}, unexpected #{e.class}: #{e}"
+    e
+end
+
+def als2bl(als)
+  return BL_MIN if als < ALS_MIN
+  return BL_MAX if als > ALS_MAX
+  (BL_MIN + (BL_MAX - BL_MIN) * (als - ALS_MIN).to_f / (ALS_MAX - ALS_MIN).to_f).round
+end
+
+
+def update_bl
+  if panel_open?
+
+    bl_cur = current_bl
+    bl_new = als2bl(smooth_als)
+		#$stdout.puts "new bl = #{bl_new} current_bl = #{bl_cur}" if bl_new != bl_cur
+		$stdout.puts "new bl = #{bl_new} current_bl = #{bl_cur}" 
+
+    if (bl_new - bl_cur).abs > SINGLE_UPDATE_THRESH
+      if bl_cur < bl_new
+        bl_new = [bl_cur + SINGLE_UPDATE_THRESH, BL_MAX].min
+      else
+        bl_new = [bl_cur - SINGLE_UPDATE_THRESH, BL_MIN].max
+      end
+    end
+
+    unless bl_new == bl_cur
+      set_bl(bl_new)
+    end
+
+  end
+end
+################################################################################################
+
 # Remove this loop and replace with your own daemon logic.
 loop do
-  sleep 1
+	update_bl
+  sleep UPDATE_INTERVAL
 end
