@@ -1,5 +1,5 @@
 # autolight
-Ruby daemon script for automatic monitor brightness adjustment on imac and macbooks under Linux
+Ruby daemon script for automatic monitor brightness adjustment on imac and macbooks under Linux.  
 Tested under Ubuntu 15.10 with Gnome 3.18
 
 This script will work for you too if you have two files in you system
