@@ -110,13 +110,15 @@ ALS_SOURCE = '/sys/devices/platform/applesmc.768/light'
 # backlight
 BL_SOURCE = '/sys/class/backlight/acpi_video0/brightness'
 
-ALS_MAX = 35
+ALS_MAX = 66
 ALS_MIN = 0
-BL_MAX = 100
+BL_MAX = 89
 BL_MIN = (BL_MAX * 0.15).round
 
 SINGLE_UPDATE_THRESH = 5
 UPDATE_INTERVAL = 0.25 # second
+#Personal correction in percents, +10 — increases backlight by 10% to normal calculation,  -10 decreases by 10%,  0 means  no correction
+PERSONAL_CORRECTION = +30 
 
 def panel_open?
   #fd = open('/proc/acpi/button/lid/LID0/state', 'r')
@@ -165,12 +167,15 @@ def als2bl(als)
   (BL_MIN + (BL_MAX - BL_MIN) * (als - ALS_MIN).to_f / (ALS_MAX - ALS_MIN).to_f).round
 end
 
+def bl_corrected(bl)
+	bl = bl + (bl.to_f*(PERSONAL_CORRECTION.to_f/100.to_f)).round
+end
 
 def update_bl
   if panel_open?
 
     bl_cur = current_bl
-    bl_new = als2bl(smooth_als)
+    bl_new = bl_corrected als2bl(smooth_als)
 
     if (bl_new - bl_cur).abs > SINGLE_UPDATE_THRESH
       if bl_cur < bl_new
