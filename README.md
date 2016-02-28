@@ -9,13 +9,13 @@ This script will work for you too if you have two files in you system
 
 # install
 - Install Ruby if not
-- Allow everyone write to /sys/class/backlight/acpi_video0/brightness
+- (optional) Change config params in sctipt code
 
 # start
-Just run script
+sudo ./autolight.rb
 
 # stop
-killall ruby
+sudo kill $(cat /tmp/autolight.pid)
 
 I used the following code to create this script  
   

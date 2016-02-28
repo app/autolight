@@ -1,39 +1,19 @@
 #!/usr/bin/env ruby
-# == Simple Daemon
-#
-# A simple ruby daemon that you copy and change as needed.
-# 
-# === How does it work?
-#
-# All this program does is fork the current process (creates a copy of
-# itself) then exits, the fork (child process) then goes on to run your
-# daemon code. In this example we are just running a while loop with a
-# 1 second sleep.
-#
-# Most of the code is dedicated to managing a pid file. We want a pid
-# file so we can use a monitoring tool to make sure our daemon keeps
-# running.
-#
-# === Why?
-#
-# Writing a daemon sounds hard but as you can see is not that
-# complicated, so lets strip away the magic and just write some ruby.
 #
 # === Usage
 #
 # You can run this daemon by running:
 #
-#     $ ./simple_ruby_daemon.rb
+#     $ sudo ./autolight.rb
 #
 # or with an optional pid file location as its first argument:
 #
-#     $ ./simple_ruby_daemon.rb tmp/simple_ruby_daemon.pid
+#     $ ./autolight.rb tmp/autolight.pid
 #
 # check that it is running by running the following:
 #
-#     $ ps aux | grep simple_ruby_daemon
+#     $ ps aux | grep autolight
 #
-# Author:: Rufus Post  (mailto:rufuspost@gmail.com)
 class SimpleDaemon
   # Checks to see if the current process is the child process and if not
   # will update the pid file with the child pid.
@@ -93,10 +73,10 @@ class SimpleDaemon
 end
 
 # Process name of your daemon
-#$0 = "simplerubydaemon"
+#$0 = "autolight"
 
 # Spawn a daemon
-SimpleDaemon.start fork, (ARGV[0] || '/tmp/daemon.pid'), (ARGV[1] || '/tmp/daemon.stdout.log'), (ARGV[2] || '/tmp/daemon.stderr.log')
+SimpleDaemon.start fork, (ARGV[0] || '/tmp/autolight.pid'), (ARGV[1] || '/tmp/autolight.stdout.log'), (ARGV[2] || '/tmp/autolight.stderr.log')
 
 # Set up signals for our daemon, for now they just exit the process.
 Signal.trap("HUP") { $stdout.puts "SIGHUP and exit"; exit }
@@ -105,20 +85,32 @@ Signal.trap("QUIT") { $stdout.puts "SIGQUIT and exit"; exit }
 
 #############################################################################################
 #
-# ambient light sensor
+# Configuration parameters
+# 
+# ambient light sensor file we reading from
 ALS_SOURCE = '/sys/devices/platform/applesmc.768/light'
-# backlight
+# backlight file we writing to
 BL_SOURCE = '/sys/class/backlight/acpi_video0/brightness'
 
+# Maximum/Minimum values awaited from ambient light sensor
 ALS_MAX = 66
 ALS_MIN = 0
+# Maximum/Minimum values accepted by system for brightness
 BL_MAX = 89
 BL_MIN = (BL_MAX * 0.15).round
 
+# When to start changing brightness? Ok when ambient light sensor value changed at least by this value
+# If you set too little value you've got blinking backlight
+# If you set too big value you've got seldom changing backlight
 SINGLE_UPDATE_THRESH = 5
+# How often to check ambient light sensor value
 UPDATE_INTERVAL = 0.25 # second
 #Personal correction in percents, +10 — increases backlight by 10% to normal calculation,  -10 decreases by 10%,  0 means  no correction
 PERSONAL_CORRECTION = +30 
+
+#
+# End of configuration parameters
+#
 
 def panel_open?
   #fd = open('/proc/acpi/button/lid/LID0/state', 'r')
